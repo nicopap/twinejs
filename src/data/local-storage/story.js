@@ -19,14 +19,14 @@ const story = module.exports = {
 
 	update(func) {
 		let transaction = {
-			storyIds: window.localStorage.getItem('twine-stories') || '',
-			passageIds: window.localStorage.getItem('twine-passages') || ''
+			storyIds: window.sessionStorage.getItem('twine-stories') || '',
+			passageIds: window.sessionStorage.getItem('twine-passages') || ''
 		};
 
 		func(transaction);
 
-		window.localStorage.setItem('twine-stories', transaction.storyIds);
-		window.localStorage.setItem('twine-passages', transaction.passageIds);
+		window.sessionStorage.setItem('twine-stories', transaction.storyIds);
+		window.sessionStorage.setItem('twine-passages', transaction.passageIds);
 	},
 
 	/*
@@ -48,7 +48,7 @@ const story = module.exports = {
 		as those are serialized under separate keys.
 		*/
 
-		window.localStorage.setItem(
+		window.sessionStorage.setItem(
 			'twine-stories-' + story.id,
 			JSON.stringify(
 				Object.assign({}, story, { passages: undefined })
@@ -67,7 +67,7 @@ const story = module.exports = {
 		}
 		
 		transaction.storyIds = commaList.remove(transaction.storyIds, story.id);
-		window.localStorage.removeItem('twine-stories-' + story.id);
+		window.sessionStorage.removeItem('twine-stories-' + story.id);
 	},
 
 	/* Saves a passage to local storage. */
@@ -82,7 +82,7 @@ const story = module.exports = {
 			passage.id
 		);
 
-		window.localStorage.setItem(
+		window.sessionStorage.setItem(
 			'twine-passages-' + passage.id,
 			JSON.stringify(passage)
 		);
@@ -105,12 +105,12 @@ const story = module.exports = {
 			transaction.passageIds,
 			id
 		);
-		window.localStorage.removeItem('twine-passages-' + id);
+		window.sessionStorage.removeItem('twine-passages-' + id);
 	},
 
 	load(store) {
 		let stories = {};
-		const serializedStories = window.localStorage.getItem('twine-stories');
+		const serializedStories = window.sessionStorage.getItem('twine-stories');
 
 		if (!serializedStories) {
 			return;
@@ -123,7 +123,7 @@ const story = module.exports = {
 
 		serializedStories.split(',').forEach(id => {
 			let newStory = JSON.parse(
-				window.localStorage.getItem('twine-stories-' + id)
+				window.sessionStorage.getItem('twine-stories-' + id)
 			);
 
 			if (newStory) {
@@ -158,19 +158,19 @@ const story = module.exports = {
 			else {
 				console.warn(
 					`Could not parse story ${id}, skipping`,
-					window.localStorage.getItem('twine-stories-' + id)
+					window.sessionStorage.getItem('twine-stories-' + id)
 				);
 			}
 		});
 
 		/* Then create passages, adding them to their parent story. */
 
-		const serializedPassages = window.localStorage.getItem('twine-passages');
+		const serializedPassages = window.sessionStorage.getItem('twine-passages');
 
 		if (serializedPassages) {
 			serializedPassages.split(',').forEach(id => {
 				let newPassage = JSON.parse(
-					window.localStorage.getItem('twine-passages-' + id)
+					window.sessionStorage.getItem('twine-passages-' + id)
 				);
 
 				if (!newPassage || !newPassage.story) {

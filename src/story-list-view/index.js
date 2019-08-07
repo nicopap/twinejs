@@ -12,6 +12,7 @@ const {check: checkForAppUpdate} = require('../dialogs/app-update');
 const {check: checkForDonation} = require('../dialogs/app-donation');
 const isElectron = require('../electron/is-electron');
 const ImportDialog = require('../dialogs/story-import');
+const {importRemoteStories} = require('../data/actions/story');
 
 require('./index.less');
 
@@ -136,6 +137,13 @@ module.exports = Vue.extend({
 		}
 	},
 
+	/* Fetch server data when the list view is accessed, (TODO: updated it
+	 * regularly)
+	 */
+	created() {
+		this.importRemoteStories();
+	},
+
 	methods: {
 		sortByDate() {
 			/*
@@ -146,7 +154,8 @@ module.exports = Vue.extend({
 			if (this.storyOrder === 'lastUpdate') {
 				this.storyOrderDir =
 					this.storyOrderDir === 'asc' ? 'desc' : 'asc';
-			} else {
+			}
+			else {
 				this.storyOrderDir = 'desc';
 			}
 
@@ -162,12 +171,14 @@ module.exports = Vue.extend({
 			if (this.storyOrder === 'name') {
 				this.storyOrderDir =
 					this.storyOrderDir === 'asc' ? 'desc' : 'asc';
-			} else {
+			}
+			else {
 				this.storyOrderDir = 'asc';
 			}
 
 			this.storyOrder = 'name';
 		}
+
 	},
 
 	components: {
@@ -183,6 +194,7 @@ module.exports = Vue.extend({
 		*/
 
 		'story-edit'(id) {
+			console.log("story-edit");
 			this.$broadcast('story-edit', id);
 		},
 
@@ -200,7 +212,11 @@ module.exports = Vue.extend({
 
 	vuex: {
 		getters: {
-			stories: state => state.story.stories
+			stories: state => state.story.stories,
+			loaded: state => state.story.loaded
+		},
+		actions: {
+			importRemoteStories
 		}
 	}
 });

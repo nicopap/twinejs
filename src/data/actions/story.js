@@ -2,22 +2,62 @@
 Story-related actions.
 */
 
+const publish = require('../publish');
+const {loadFormat} = require('./story-format');
 const semverUtils = require('semver-utils');
 const latestFormatVersions = require('../latest-format-versions');
+const importFile = require('../import');
+
+function sendRequest(method, url, payload, callback) {
+	var req = new XMLHttpRequest();
+
+	req.open(method, url);
+	req.responseType = "json";
+	req.setRequestHeader("Content-Type", "application/json");
+
+	req.onreadystatechange = () => {
+		if(req.readyState === 4 && req.status === 200) {
+			let response = req.response;
+
+			callback(response);
+		}
+	};
+
+	if (!payload) {
+		req.send();
+	}
+	else {
+		req.send(JSON.stringify(payload));
+	}
+}
 
 const actions = (module.exports = {
 	createStory(store, props) {
 		let normalizedProps = Object.assign({}, props);
-
-		/* If a format isn't specified, use the default one. */
 
 		if (!normalizedProps.storyFormat) {
 			normalizedProps.storyFormat = store.state.pref.defaultFormat.name;
 			normalizedProps.storyFormatVersion =
 				store.state.pref.defaultFormat.version;
 		}
-
 		store.dispatch('CREATE_STORY', normalizedProps);
+	},
+
+	lockStory(store, props) {
+		sendRequest(
+			"POST",
+			"/api/stories/" + props.name + "/open",
+			{ user: props.userName },
+			(storyLockId) => {
+				let story = store.state.story.stories.find(v => v.name === props.name)
+				if (!story) {
+					console.log("locking an innexisting story")
+				} else {
+					let name = story.name
+					store.dispatch('SET_LOCK_ID', { lockId: storyLockId, name: name })
+				}
+			}
+		);
 	},
 
 	updateStory({dispatch}, id, props) {
@@ -30,6 +70,37 @@ const actions = (module.exports = {
 
 	duplicateStory({dispatch}, id, newName) {
 		dispatch('DUPLICATE_STORY', id, newName);
+	},
+
+	importRemoteStories({dispatch}) {
+		dispatch('SET_LOAD_COUNT', -1);
+		sendRequest("GET", "/api/stories", null, (serverStories) => {
+			dispatch('SET_LOAD_COUNT', -(serverStories.length));
+			serverStories.forEach(storyData => {
+
+				var req = new XMLHttpRequest();
+
+				req.open("GET", "/api/stories/" + storyData.name);
+				req.onreadystatechange = function () {
+
+					if(req.readyState === 4 && req.status === 200) {
+						let response = JSON.parse(req.responseText)
+						let storyHtml = atob(response);
+						//TODO: figure out editing date
+						const deserialized = importFile(storyHtml, Date.now());
+
+						if (deserialized.length > 0) {
+							dispatch('IMPORT_STORY', deserialized[0]);
+						} else {
+							console.warn(`Recieved an empty story from server ${storyData.name}`)
+							console.warn(`The http response is ${req.responseText}`)
+						}
+					}
+					dispatch('INCREMENT_LOAD_COUNT');
+				};
+				req.send();
+			});
+		});
 	},
 
 	importStory({dispatch}, toImport) {
@@ -51,6 +122,37 @@ const actions = (module.exports = {
 		store.dispatch('UPDATE_STORY', storyId, {
 			tagColors: Object.assign({}, story.tagColors, toMerge)
 		});
+	},
+
+	saveRemote(store, storyId, appInfo) {
+		const story = store.state.story.stories.find(v => v.id == storyId);
+
+		const storyLockId = story.lockId;
+		const storyName = encodeURI(story.name);
+		const publishValue = publish.publishStory(appInfo, story, null, null, true);
+		sendRequest(
+			"POST",
+			"/api/stories/" + storyName + "/save", 
+			{ lock: storyLockId, file: btoa(publishValue) },
+			(_) => {},
+		);
+	},
+
+	// TODO
+	refreshRemote(store, storyId) {
+		const story = store.state.story.stories.find(v => v.id == storyId);
+		const storyLockId = story.lockId;
+		const storyName = encodeURI(story.name);
+
+		sendRequest(
+			"POST",
+			"/api/stories/" + storyName + "/keepup",
+			{ lock: storyLockId },
+			(response) => { 
+				console.log(response)
+				/*TODO: escalate save errors*/ 
+			},
+		);
 	},
 
 	/*
@@ -107,7 +209,8 @@ const actions = (module.exports = {
 					storyFormat: 'SugarCube',
 					storyFormatVersion: latestVersions['SugarCube']['1'].version
 				});
-			} else if (/^SugarCube 2/.test(story.storyFormat)) {
+			}
+			else if (/^SugarCube 2/.test(story.storyFormat)) {
 				actions.updateStory(store, story.id, {
 					storyFormat: 'SugarCube',
 					storyFormatVersion: latestVersions['SugarCube']['2'].version
@@ -138,7 +241,8 @@ const actions = (module.exports = {
 				}
 
 				/* eslint-enable max-len */
-			} else if (latestVersions[story.storyFormat]) {
+			}
+			else if (latestVersions[story.storyFormat]) {
 				/*
 				If a story has no format version, pick the lowest major version
 				number currently available.

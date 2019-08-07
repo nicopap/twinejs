@@ -171,7 +171,11 @@ module.exports = store => {
 				storyFormat.save(store);
 				break;
 
+			case 'LOAD_ALL_STORIES':
+			case 'SET_LOAD_COUNT':
+			case 'INCREMENT_LOAD_COUNT':
 			case 'LOAD_FORMAT':
+			case 'SET_LOCK_ID':
 				/* This change doesn't need to be persisted. */
 				break;
 

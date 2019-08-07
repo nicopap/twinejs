@@ -35,10 +35,26 @@ function getPassageInStory(story, id) {
 
 const storyStore = (module.exports = {
 	state: {
-		stories: []
+		stories: [],
+		userName: "default user",
+		loaded: -1
 	},
 
 	mutations: {
+		SET_LOCK_ID(state, props) {
+			let story = state.stories.find(story => story.name === props.name);
+
+			story.lockId = props.lockId;
+		},
+
+		INCREMENT_LOAD_COUNT(state) {
+			state.loaded += 1;
+		},
+
+		SET_LOAD_COUNT(state, props) {
+			state.loaded = props;
+		},
+
 		CREATE_STORY(state, props) {
 			let story = Object.assign(
 				{
@@ -46,6 +62,7 @@ const storyStore = (module.exports = {
 					lastUpdate: new Date(),
 					ifid: uuid().toUpperCase(),
 					tagColors: {},
+					lockId: "uninitialized lock",
 					passages: []
 				},
 				storyStore.storyDefaults,
@@ -143,14 +160,8 @@ const storyStore = (module.exports = {
 			Force the top and left properties to be at least zero, to keep
 			passages onscreen.
 			*/
-
-			if (newPassage.left < 0) {
-				newPassage.left = 0;
-			}
-
-			if (newPassage.top < 0) {
-				newPassage.top = 0;
-			}
+			newPassage.left = newPassage.left < 0 ? 0 : newPassage.left;
+			newPassage.top = newPassage.top < 0 ? 0 : newPassage.top;
 
 			newPassage.story = story.id;
 			story.passages.push(newPassage);
@@ -167,7 +178,9 @@ const storyStore = (module.exports = {
 
 			try {
 				story = getStoryById(state, storyId);
-			} catch (e) {
+			}
+			catch (e) {
+				console.log(e);
 				return;
 			}
 
@@ -188,7 +201,8 @@ const storyStore = (module.exports = {
 
 			try {
 				passage = getPassageInStory(story, passageId);
-			} catch (e) {
+			}
+			catch (e) {
 				return;
 			}
 
@@ -230,7 +244,7 @@ const storyStore = (module.exports = {
 		selected: false,
 
 		text: ui.hasPrimaryTouchUI()
-			? locale.say('Tap this passage, then the pencil icon to edit it.')
-			: locale.say('Double-click this passage to edit it.')
+		? locale.say('Tap this passage, then the pencil icon to edit it.')
+		: locale.say('Double-click this passage to edit it.')
 	}
 });
