@@ -8,47 +8,31 @@ const package = require('./package.json');
 
 const isRelease = process.env.NODE_ENV === 'production';
 const useCdn = process.env.USE_CDN === 'y';
-const useElectron = process.env.USE_ELECTRON === 'y';
 
 const config = (module.exports = {
 	mode: isRelease ? 'production' : 'development',
 	entry: './src/index.js',
-	target: useElectron ? 'electron-renderer' : 'web',
+	target: useCdn ? 'web-cdn' : 'web',
 	output: {
-		path: path.join(
-			__dirname,
-			'dist',
-			useCdn ? 'web-cdn' : useElectron ? 'web-electron' : 'web'
-		),
-		filename: 'twine.js'
+		filename: 'twine.js',
+		path: path.resolve(__dirname, '../priv/static/js'),
 	},
 	module: {
 		rules: [
-			/*
-			Inline resources below 10k in size.
-			*/
+            // Inline resources below 1k in size.
 			{
 				test: /\.(eot|png|svg|ttf|woff|woff2)(\?.*)?$/,
 				loader: 'url-loader',
 				options: {
-					limit: 10000,
+					limit: 1000,
 					name: 'rsrc/[name].[hash].[ext]'
 				}
 			},
 
-			/*
-			We must exclude the top-level template, as I think the HTML plugin
-			is expecting a string as output, not a function.
-			*/
-			{
-				test: /\.ejs$/,
-				exclude: /index\.ejs$/,
-				loader: 'ejs-webpack-loader'
-			},
-			{
-				test: /\.html$/,
-				loader: 'html-loader'
-			},
+            // We must exclude the top-level template, as I think the HTML plugin
+			// is expecting a string as output, not a function.
+			{ test: /\.ejs$/, exclude: /index\.ejs$/, loader: 'ejs-webpack-loader' },
+			{ test: /\.html$/, loader: 'html-loader' },
 			{
 				test: /\.less$/,
 				use: [
@@ -56,13 +40,7 @@ const config = (module.exports = {
 					{loader: 'css-loader', options: {minimize: isRelease}},
 					{
 						loader: 'less-loader',
-						options: {
-							plugins: [
-								new Autoprefixer({
-									browsers: package.browserslist.split(', ')
-								})
-							]
-						}
+						options: { plugins: [ new Autoprefixer({ browsers: package.browserslist.split(', ') }) ] }
 					}
 				]
 			}
@@ -97,10 +75,6 @@ const config = (module.exports = {
 });
 
 if (isRelease) {
-	/*
-	Transpile JS to our target platforms.
-	*/
-
 	config.module.rules.push({
 		test: /\.js$/,
 		exclude: /node_modules/,
@@ -112,10 +86,7 @@ if (isRelease) {
 if (useCdn) {
 	config.externals = {
 		codemirror: 'CodeMirror',
-		/*
-		core-js has no external interface, so we borrow an existing global
-		property.
-		*/
+        // core-js has no external interface, so we borrow an existing global property.
 		'core-js': 'location',
 		fastclick: 'FastClick',
 		jed: 'Jed',
