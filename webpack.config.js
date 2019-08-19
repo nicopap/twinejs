@@ -15,7 +15,7 @@ const config = (module.exports = {
 	target: useCdn ? 'web-cdn' : 'web',
 	output: {
 		filename: 'twine.js',
-		path: path.resolve(__dirname, '../priv/static/js'),
+		path: path.resolve(__dirname, '../priv/static'),
 	},
 	module: {
 		rules: [
