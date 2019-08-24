@@ -107,7 +107,7 @@ module.exports = Vue.extend({
 			saveRemote
 		},
 		getters: {
-			appInfo: state => state.story.appInfo
+			appInfo: state => state.appInfo
 		}
 	}
 });
