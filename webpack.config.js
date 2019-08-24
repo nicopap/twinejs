@@ -15,11 +15,7 @@ const config = (module.exports = {
 	entry: './src/index.js',
 	target: useElectron ? 'electron-renderer' : 'web',
 	output: {
-		path: path.join(
-			__dirname,
-			'dist',
-			useCdn ? 'web-cdn' : useElectron ? 'web-electron' : 'web'
-		),
+		path: path.resolve(__dirname, '../priv/static'),
 		filename: 'twine.js'
 	},
 	module: {
