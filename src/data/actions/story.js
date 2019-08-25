@@ -106,7 +106,7 @@ const actions = (module.exports = {
 						let storyHtml = atob(response);
 						let lastEdit = new Date(storyData.last_edit);
 						const deserialized =
-							importFile(storyHtml, lastEdit);
+							importFile(storyHtml, lastEdit, storyData.editor);
 
 						if (deserialized.length > 0) {
 							dispatch('IMPORT_STORY', deserialized[0]);

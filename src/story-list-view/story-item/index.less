@@ -8,6 +8,14 @@
 	margin-right: @len-extra-large;
 	margin-bottom: @len-extra-large;
 
+	.author {
+		color: #2f2f2f;
+		margin:0;
+		.theme-dark & {
+			filter: invert(100%) hue-rotate(180deg);
+			.shadow-small-inverted;
+		}
+	}
 	button.preview {
 		height: @item-width;
 		padding: 0;

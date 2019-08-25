@@ -1,4 +1,5 @@
 <div class="story-item" :data-order="order">
+	<p class="smaller author">{{ 'author: ' | say}}{{ author }}</p>
     <item-preview :hue="hue" :passages="story.passages" :edit="edit"></item-preview>
 
     <div class="controls">

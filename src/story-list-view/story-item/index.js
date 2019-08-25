@@ -26,6 +26,7 @@ module.exports = Vue.extend({
 	},
 
 	computed: {
+		author() { return this.story.author; },
 		lastUpdateFormatted() {
 			return moment(this.story.lastUpdate).format('lll');
 		},

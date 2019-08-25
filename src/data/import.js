@@ -28,7 +28,7 @@ Converts a DOM <tw-storydata> element to a story object matching the format in
 the store.
 */
 
-function domToObject(storyEl, forceLastUpdate) {
+function domToObject(storyEl, forceLastUpdate, author) {
 	return {
 		/*
 		Important: this is the passage's pid (a one-off id created at publish
@@ -41,6 +41,9 @@ function domToObject(storyEl, forceLastUpdate) {
 		name:
 			storyEl.attributes.name ?
 				storyEl.attributes.name.value : null,
+		author:
+			author || (storyEl.attributes.author ?
+				storyEl.attributes.author.value : null),
 		ifid:
 			storyEl.attributes.ifid ?
 				storyEl.attributes.ifid.value : null,
@@ -122,7 +125,7 @@ function domToObject(storyEl, forceLastUpdate) {
 	};
 }
 
-module.exports = (html, lastUpdate) => {
+module.exports = (html, lastUpdate, author) => {
 	let nodes = document.createElement('div');
 
 	nodes.innerHTML = html;
@@ -130,5 +133,5 @@ module.exports = (html, lastUpdate) => {
 	return Array.from(
 		nodes.querySelectorAll(selectors.storyData)
 	)
-	.map(storyEl => domToObject(storyEl, lastUpdate));
+	.map(storyEl => domToObject(storyEl, lastUpdate, author));
 };
