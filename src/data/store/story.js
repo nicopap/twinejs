@@ -156,6 +156,12 @@ const storyStore = (module.exports = {
 			story.saveInterval = null;
 		},
 
+		TRIM_SESSION_STORIES(state) {
+			state.stories.forEach((story) =>
+				storyStore.mutations.DELETE_STORY(state, story.id)
+			);
+		},
+
 		DELETE_STORY(state, id) {
 			state.stories = state.stories.filter(story => story.id !== id);
 		},

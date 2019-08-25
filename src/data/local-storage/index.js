@@ -178,6 +178,7 @@ module.exports = store => {
 			case 'UNSET_SAVE_INTERVAL_ID':
 			case 'LOAD_FORMAT':
 			case 'SET_LOCK_ID':
+			case 'TRIM_SESSION_STORIES':
 				/* This change doesn't need to be persisted. */
 				break;
 

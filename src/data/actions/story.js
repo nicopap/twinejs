@@ -91,6 +91,7 @@ const actions = (module.exports = {
 
 	importRemoteStories({dispatch}) {
 		dispatch('SET_LOAD_COUNT', -1);
+		dispatch('TRIM_SESSION_STORIES');
 		sendRequest("GET", "/api/stories", null, (serverStories) => {
 			dispatch('SET_LOAD_COUNT', -(serverStories.length));
 			serverStories.forEach(storyData => {
