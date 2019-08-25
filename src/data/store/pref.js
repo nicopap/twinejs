@@ -18,6 +18,7 @@ module.exports = {
 			'en-us',
 		proofingFormat: 'Paperthin',
 		welcomeSeen: false,
+		userName: 'Twine user',
 	},
 
 	mutations: {

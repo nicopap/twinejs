@@ -3,6 +3,9 @@
 
 	<ul class="plain">
 		<li>
+			<input v-model="userName" class="block" title="{{ 'Change user name' | say}}">
+		</li>
+		<li>
 			<button class="create block" @click="createStoryPrompt" title="{{ 'Create a brand-new story' | say }}">
 				<i class="fa fa-plus"></i> {{ 'Story' | say }}
 			</button>

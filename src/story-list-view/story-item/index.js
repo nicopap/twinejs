@@ -85,7 +85,7 @@ module.exports = Vue.extend({
 			this.openStory({
 				story: this.story,
 				appInfo: this.appInfo,
-				userName: "not so default user"
+				userName: this.userName
 			});
 			new ZoomTransition({ data: {
 				x: pos.left + pos.width / 2,
@@ -101,7 +101,8 @@ module.exports = Vue.extend({
 			openStory,
 		},
 		getters: {
-			appInfo: state => state.appInfo
+			appInfo: state => state.appInfo,
+			userName: state => state.pref.userName
 		}
 	}
 });

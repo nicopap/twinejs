@@ -10,10 +10,17 @@ const locale = require('../../locale');
 const {prompt} = require('../../dialogs/prompt');
 const {publishArchive} = require('../../data/publish');
 const saveFile = require('../../file/save');
+const { setPref } = require('../../data/actions/pref');
 
 module.exports = Vue.extend({
 	template: require('./index.html'),
 
+	computed: {
+		userName: {
+			set(name) { this.setPref('userName', name); },
+			get() { return this.pref.userName; }
+		}
+	},
 	methods: {
 		createStoryPrompt(e) {
 			// Prompt for the new story name.
@@ -98,12 +105,14 @@ module.exports = Vue.extend({
 
 	vuex: {
 		actions: {
-			createStory
+			createStory,
+			setPref
 		},
 
 		getters: {
 			appInfo: state => state.appInfo,
-			existingStories: state => state.story.stories
+			existingStories: state => state.story.stories,
+			pref: state => state.pref
 		}
 	}
 });
