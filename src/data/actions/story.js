@@ -103,10 +103,12 @@ const actions = (module.exports = {
 
 					if(req.readyState === 4 && req.status === 200) {
 						let response = JSON.parse(req.responseText)
-						let storyHtml = atob(response);
-						let lastEdit = new Date(storyData.last_edit);
-						const deserialized =
-							importFile(storyHtml, lastEdit, storyData.editor);
+						const deserialized = importFile(
+							atob(response),
+							new Date(storyData.last_edit),
+							storyData.editor,
+							storyData.lock_expiry
+						);
 
 						if (deserialized.length > 0) {
 							dispatch('IMPORT_STORY', deserialized[0]);

@@ -7,8 +7,19 @@ const moment = require('moment');
 const Vue = require('vue');
 const ZoomTransition = require('../zoom-transition');
 const {openStory} = require('../../data/actions/story');
+const locale = require('../../locale');
 
 require('./index.less');
+
+function isLocked(story) {
+	if (story.lock_expiry) {
+		let now = Date.now();
+		let expiry_date = (new Date(story.lock_expiry)).getTime();
+
+		return now - expiry_date < 0;
+	}
+	else { return false; }
+}
 
 module.exports = Vue.extend({
 	template: require('./index.html'),
@@ -27,6 +38,15 @@ module.exports = Vue.extend({
 
 	computed: {
 		author() { return this.story.author; },
+		isLocked() { return isLocked(this.story); },
+
+		lockedTitle() {
+			let author = this.story.author;
+			let msg = locale.say('This story is locked while %s is working on it.', author);
+
+			return isLocked(this.story)? msg : '';
+		},
+
 		lastUpdateFormatted() {
 			return moment(this.story.lastUpdate).format('lll');
 		},
@@ -80,7 +100,9 @@ module.exports = Vue.extend({
 		**/
 
 		edit() {
-
+			if (isLocked(this.story)) {
+				return;
+			}
 			const pos = this.$el.getBoundingClientRect();
 
 			this.openStory({

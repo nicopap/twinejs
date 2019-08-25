@@ -1,4 +1,4 @@
-<div class="story-item" :data-order="order">
+<div class="story-item" v-bind:class="{ 'locked': isLocked }" title="{{ lockedTitle }}" :data-order="order">
 	<p class="smaller author">{{ 'author: ' | say}}{{ author }}</p>
     <item-preview :hue="hue" :passages="story.passages" :edit="edit"></item-preview>
 

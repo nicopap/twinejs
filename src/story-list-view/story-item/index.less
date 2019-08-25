@@ -3,11 +3,19 @@
 
 @item-width: 11rem;
 
-.story-item {
-	width: 11rem;
-	margin-right: @len-extra-large;
-	margin-bottom: @len-extra-large;
+.locked {
+	border: solid red;
+	border-radius: 6px;
+	cursor: not-allowed;
+	z-index:1;
+}
 
+div.locked * {
+	cursor: not-allowed!important;
+}
+.story-item {
+	width: 14rem;
+	padding: @len-extra-large;
 	.author {
 		color: #2f2f2f;
 		margin:0;
@@ -27,7 +35,6 @@
 			filter: invert(100%) hue-rotate(180deg);
 			.shadow-small-inverted;
 		}
-
 		svg {
 			padding: @len-small;
 			width: @item-width;
