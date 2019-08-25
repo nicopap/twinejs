@@ -32,6 +32,19 @@ function sendRequest(method, url, payload, callback) {
 }
 
 const actions = (module.exports = {
+    closeStory(store, id, appInfo) {
+        let story = store.state.story.stories.find(s => s.id === id)
+        store.dispatch('UNSET_SAVE_INTERVAL_ID', story.id)
+        actions.saveRemote(store, story.id, appInfo);
+        console.log(`attempting to close ${story}`)
+        sendRequest(
+            "POST",
+            "/api/stories/" + story.name + "/close",
+            { lock: story.lockId },
+            (_) => { console.log(`closed ${story} succefully`) }
+        )
+    },
+
 	createStory(store, props) {
 		let normalizedProps = Object.assign({}, props);
 
@@ -43,19 +56,23 @@ const actions = (module.exports = {
 		store.dispatch('CREATE_STORY', normalizedProps);
 	},
 
-	lockStory(store, props) {
+	openStory(store, {story, appInfo, userName}) {
+		const storyName = encodeURI(story.name);
+        const intervalId = window.setInterval(() => {
+            actions.saveRemote(store, story.id, appInfo);
+            actions.refreshRemote(store, story.id);
+        }, 20 * 1000);
+        store.dispatch('SET_SAVE_INTERVAL_ID', story.id, intervalId);
+
 		sendRequest(
 			"POST",
-			"/api/stories/" + props.name + "/open",
-			{ user: props.userName },
+			"/api/stories/" + storyName + "/open",
+			{ user: userName },
 			(storyLockId) => {
-				let story = store.state.story.stories.find(v => v.name === props.name)
-				if (!story) {
-					console.log("locking an innexisting story")
-				} else {
-					let name = story.name
-					store.dispatch('SET_LOCK_ID', { lockId: storyLockId, name: name })
-				}
+                store.dispatch('SET_LOCK_ID', {
+                    lockId: storyLockId,
+                    storyId: story.id 
+                })
 			}
 		);
 	},

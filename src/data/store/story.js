@@ -37,14 +37,15 @@ const storyStore = (module.exports = {
 	state: {
 		stories: [],
 		userName: "default user",
-		loaded: -1
+		loaded: -1,
+		updateInterval: null
 	},
 
 	mutations: {
-		SET_LOCK_ID(state, props) {
-			let story = state.stories.find(story => story.name === props.name);
+		SET_LOCK_ID(state, {lockId, storyId}) {
+			let story = state.stories.find(s => s.id === storyId);
 
-			story.lockId = props.lockId;
+			story.lockId = lockId;
 		},
 
 		INCREMENT_LOAD_COUNT(state) {
@@ -140,6 +141,19 @@ const storyStore = (module.exports = {
 
 			delete toImport.startPassagePid;
 			state.stories.push(toImport);
+		},
+
+		SET_SAVE_INTERVAL_ID(state, storyId, interval) {
+			let story = getStoryById(state, storyId);
+
+			story.saveInterval = interval;
+		},
+
+		UNSET_SAVE_INTERVAL_ID(state, storyId) {
+			let story = getStoryById(state, storyId);
+
+			window.clearInterval(story.saveInterval);
+			story.saveInterval = null;
 		},
 
 		DELETE_STORY(state, id) {

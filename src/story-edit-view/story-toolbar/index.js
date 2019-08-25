@@ -3,7 +3,7 @@
 const Vue = require('vue');
 const zoomMappings = require('../zoom-settings');
 const {playStory, testStory} = require('../../common/launch-story');
-const {updateStory} = require('../../data/actions/story');
+const {closeStory, updateStory} = require('../../data/actions/story');
 
 require('./index.less');
 
@@ -28,6 +28,10 @@ module.exports = Vue.extend({
 	},
 
 	methods: {
+		leaveStory() {
+			this.closeStory(this.story.id, this.appInfo);
+		},
+
 		setZoom(description) {
 			this.updateStory(this.story.id, {zoom: zoomMappings[description]});
 		},
@@ -47,7 +51,11 @@ module.exports = Vue.extend({
 
 	vuex: {
 		actions: {
-			updateStory
+			updateStory,
+			closeStory
+		},
+		getters: {
+			appInfo: state => state.appInfo
 		}
 	}
 });

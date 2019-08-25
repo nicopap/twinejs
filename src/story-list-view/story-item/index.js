@@ -6,8 +6,7 @@
 const moment = require('moment');
 const Vue = require('vue');
 const ZoomTransition = require('../zoom-transition');
-const {lockStory} = require('../../data/actions/story');
-const {saveRemote} = require('../../data/actions/story');
+const {openStory} = require('../../data/actions/story');
 
 require('./index.less');
 
@@ -83,15 +82,11 @@ module.exports = Vue.extend({
 
 			const pos = this.$el.getBoundingClientRect();
 
-			console.log(this.story);
-			this.lockStory({
-				name: this.story.name,
+			this.openStory({
+				story: this.story,
+				appInfo: this.appInfo,
 				userName: "not so default user"
 			});
-			const interval = window.setInterval(() => {
-				this.saveRemote( this.story.id, this.appInfo );
-			}, 0.1 * 60 * 1000);
-
 			new ZoomTransition({ data: {
 				x: pos.left + pos.width / 2,
 				y: pos.top,
@@ -103,8 +98,7 @@ module.exports = Vue.extend({
 
 	vuex: {
 		actions: {
-			lockStory,
-			saveRemote
+			openStory,
 		},
 		getters: {
 			appInfo: state => state.appInfo
