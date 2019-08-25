@@ -104,14 +104,14 @@ const actions = (module.exports = {
 					if(req.readyState === 4 && req.status === 200) {
 						let response = JSON.parse(req.responseText)
 						let storyHtml = atob(response);
-						//TODO: figure out editing date
-						const deserialized = importFile(storyHtml, Date.now());
+						let lastEdit = new Date(storyData.last_edit);
+						const deserialized =
+							importFile(storyHtml, lastEdit);
 
 						if (deserialized.length > 0) {
 							dispatch('IMPORT_STORY', deserialized[0]);
 						} else {
 							console.warn(`Recieved an empty story from server ${storyData.name}`)
-							console.warn(`The http response is ${req.responseText}`)
 						}
 					}
 					dispatch('INCREMENT_LOAD_COUNT');
