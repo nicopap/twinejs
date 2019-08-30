@@ -137,9 +137,6 @@ module.exports = Vue.extend({
 		}
 	},
 
-	/* Fetch server data when the list view is accessed, (TODO: updated it
-	 * regularly)
-	 */
 	created() {
 		this.importRemoteStories();
 	},

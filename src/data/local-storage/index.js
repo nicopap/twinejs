@@ -171,21 +171,8 @@ module.exports = store => {
 				storyFormat.save(store);
 				break;
 
-			case 'LOAD_ALL_STORIES':
-			case 'SET_LOAD_COUNT':
-			case 'INCREMENT_LOAD_COUNT':
-			case 'SET_SAVE_INTERVAL_ID':
-			case 'UNSET_SAVE_INTERVAL_ID':
-			case 'LOAD_FORMAT':
-			case 'SET_LOCK_ID':
-			case 'TRIM_SESSION_STORIES':
-				/* This change doesn't need to be persisted. */
-				break;
-
 			default:
-				throw new Error(
-					`Don't know how to handle mutation ${mutation.type}`
-				);
+				break;
 		}
 
 		/*

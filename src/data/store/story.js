@@ -3,6 +3,7 @@ A Vuex module for working with stories. This is meant to be incorporated by
 index.js.
 */
 
+const {Socket} = require('phoenix');
 const uuid = require('tiny-uuid');
 const locale = require('../../locale');
 const idFor = require('../id');
@@ -38,10 +39,39 @@ const storyStore = (module.exports = {
 		stories: [],
 		userName: "default user",
 		loaded: -1,
+		socket: null,
 		updateInterval: null
 	},
 
 	mutations: {
+		JOIN_LOBBY_NOTIF(state, onMessageActions) {
+			let socket = new Socket("/socket");
+
+			socket.connect();
+			let channel = socket.channel("room:lock",{});
+
+			Object.entries(onMessageActions)
+				.forEach(([msg, handler]) => { channel.on(msg, handler); });
+			channel.join()
+				.receive("ok", r => { console.log("Joined successfully", r); })
+				.receive("error", r => { console.log("Unable to join", r); });
+
+			state.socket = socket;
+		},
+
+		UNLOCK_STORY(state, storyName) {
+			let story = state.stories.find(s => s.name === storyName);
+
+			story.lock_expiry = '1970-01-01'; // 🤫
+		},
+
+		LOCK_STORY(state, storyName, author) {
+			let story = state.stories.find(s => s.name === storyName);
+
+			story.author = author;
+			story.lock_expiry = '2038-01-18'; // 🤫
+		},
+
 		SET_LOCK_ID(state, {lockId, storyId}) {
 			let story = state.stories.find(s => s.id === storyId);
 

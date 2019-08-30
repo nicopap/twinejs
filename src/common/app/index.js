@@ -4,7 +4,7 @@
 const Vue = require('vue');
 const ui = require('../../ui');
 const {repairFormats} = require('../../data/actions/story-format');
-const {repairStories} = require('../../data/actions/story');
+const {repairStories, initConn} = require('../../data/actions/story');
 const store = require('../../data/store');
 
 module.exports = Vue.extend({
@@ -17,6 +17,10 @@ module.exports = Vue.extend({
 		document.body.classList.add(`theme-${this.themePref}`);
 	},
 
+	created() {
+		this.initConn();
+	},
+
 	watch: {
 		themePref(value, oldValue) {
 			document.body.classList.remove(`theme-${oldValue}`);
@@ -25,7 +29,7 @@ module.exports = Vue.extend({
 	},
 
 	vuex: {
-		actions: {repairFormats, repairStories},
+		actions: {repairFormats, repairStories, initConn},
 		getters: {
 			themePref: state => state.pref.appTheme
 		}

@@ -32,6 +32,16 @@ function sendRequest(method, url, payload, callback) {
 }
 
 const actions = (module.exports = {
+	initConn(store) {
+		let dispatch = store.dispatch;
+		let reactions = {
+			lock: ({story, user}) => { dispatch('LOCK_STORY', story, user) },
+			unlock: ({story}) => { dispatch('UNLOCK_STORY', story) },
+			created: ({story}) => { actions.importRemoteStories(store) }
+		};
+		store.dispatch('JOIN_LOBBY_NOTIF', reactions);
+	},
+
     closeStory(store, id, appInfo) {
         let story = store.state.story.stories.find(s => s.id === id)
         store.dispatch('UNSET_SAVE_INTERVAL_ID', story.id)
@@ -158,7 +168,6 @@ const actions = (module.exports = {
 		);
 	},
 
-	// TODO
 	refreshRemote(store, storyId) {
 		const story = store.state.story.stories.find(v => v.id == storyId);
 		const storyLockId = story.lockId;
