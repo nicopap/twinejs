@@ -1,5 +1,5 @@
 <div id="storyEditView" :style="cssDimensions" class="{{ 'zoom-' + zoomDesc }}" @webkitmouseforcedown="onMouseForceDown" @wheel="onWheel" v-mouse-scrolling>
-	<div class="passages">
+	<div class="passages" v-bind:class="{ readonly: isReadonly }">
 		<marquee-selector :story="story"></marquee-selector>
 		<link-arrows :passages="story.passages" :positions="passagePositions" :zoom="story.zoom"></link-arrows>
 

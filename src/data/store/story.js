@@ -9,19 +9,11 @@ const locale = require('../../locale');
 const idFor = require('../id');
 const ui = require('../../ui');
 
-/*
-A shorthand function for finding a particular story in the state, or a
-particular passage in a story.
-*/
-
 function getStoryById(state, id) {
-	let story = state.stories.find(story => story.id === id);
-
-	if (!story) {
-		throw new Error(`No story exists with id ${id}`);
-	}
-
-	return story;
+	return state.stories.find(story => story.id === id);
+}
+function getStoryByName(state, name) {
+	return state.stories.find(story => story.name === name);
 }
 
 function getPassageInStory(story, id) {
@@ -38,7 +30,6 @@ const storyStore = (module.exports = {
 	state: {
 		stories: [],
 		userName: "default user",
-		loaded: -1,
 		socket: null,
 		updateInterval: null
 	},
@@ -48,42 +39,58 @@ const storyStore = (module.exports = {
 			let socket = new Socket("/socket");
 
 			socket.connect();
-			let channel = socket.channel("room:lock",{});
+			let channel = socket.channel("locks:_",{});
 
 			Object.entries(onMessageActions)
 				.forEach(([msg, handler]) => { channel.on(msg, handler); });
 			channel.join()
-				.receive("ok", r => { console.log("Joined successfully", r); })
-				.receive("error", r => { console.log("Unable to join", r); });
+				.receive("ok", _ => { console.log("sent a message"); })
+				.receive("error", r => { console.log("Error occured:", r); });
 
 			state.socket = socket;
 		},
+		JOIN_STORY_CHANNEL(state, storyId, onMessageActions) {
+			let story = getStoryById(state, storyId);
+			let socket = state.socket;
+			let channel = socket.channel(`story:${story.name}`, {});
+
+			Object.entries(onMessageActions)
+				.forEach(([msg, handler]) =>
+					channel.on(msg, ({body}) => {
+						console.log(msg, body);
+						handler(body);
+					})
+				);
+			channel.join()
+				.receive("ok", _ => { console.log("Sent a message"); })
+				.receive("error", r => { console.log("Failed to send message:", r); });
+			channel.pushmsg = (msg, body) => channel.push(msg, {body});
+			story.channel = channel;
+		},
+		LEAVE_STORY_CHANNEL(state, storyId) {
+			let story = getStoryById(state, storyId);
+
+			story.channel.leave();
+			state.socket.channel("locks:_").join();
+		},
 
 		UNLOCK_STORY(state, storyName) {
-			let story = state.stories.find(s => s.name === storyName);
+			let story = getStoryByName(state, storyName);
 
 			story.lock_expiry = '1970-01-01'; // 🤫
 		},
 
 		LOCK_STORY(state, storyName, author) {
-			let story = state.stories.find(s => s.name === storyName);
+			let story = getStoryByName(state, storyName);
 
 			story.author = author;
 			story.lock_expiry = '2038-01-18'; // 🤫
 		},
 
 		SET_LOCK_ID(state, {lockId, storyId}) {
-			let story = state.stories.find(s => s.id === storyId);
+			let story = getStoryById(state, storyId);
 
 			story.lockId = lockId;
-		},
-
-		INCREMENT_LOAD_COUNT(state) {
-			state.loaded += 1;
-		},
-
-		SET_LOAD_COUNT(state, props) {
-			state.loaded = props;
 		},
 
 		CREATE_STORY(state, props) {
@@ -151,9 +158,6 @@ const storyStore = (module.exports = {
 			/*
 			See data/import.js for how the object that we receive is
 			structured.
-
-			Assign IDs to to everything, link passages to their story,
-			and set the story's startPassage property appropriately.
 			*/
 
 			toImport.id = idFor(toImport.name);
@@ -170,7 +174,15 @@ const storyStore = (module.exports = {
 			});
 
 			delete toImport.startPassagePid;
-			state.stories.push(toImport);
+
+			let story = getStoryById(state, toImport.id);
+
+			if (story) {
+				Object.assign(story, toImport);
+			}
+			else {
+				state.stories.push(toImport);
+			}
 		},
 
 		SET_SAVE_INTERVAL_ID(state, storyId, interval) {
@@ -186,12 +198,6 @@ const storyStore = (module.exports = {
 			story.saveInterval = null;
 		},
 
-		TRIM_SESSION_STORIES(state) {
-			state.stories.forEach((story) =>
-				storyStore.mutations.DELETE_STORY(state, story.id)
-			);
-		},
-
 		DELETE_STORY(state, id) {
 			state.stories = state.stories.filter(story => story.id !== id);
 		},
@@ -205,20 +211,13 @@ const storyStore = (module.exports = {
 			*/
 			
 			let story = getStoryById(state, storyId);
-			let newPassage = Object.assign(
-				{
-					id: idFor(story.name + uuid())
-				},
-				storyStore.passageDefaults,
-				props
-			);
+			let id = uuid();
+			let newPassage =
+				Object.assign({ id }, storyStore.passageDefaults, props);
 
-			/*
-			Force the top and left properties to be at least zero, to keep
-			passages onscreen.
-			*/
-			newPassage.left = newPassage.left < 0 ? 0 : newPassage.left;
-			newPassage.top = newPassage.top < 0 ? 0 : newPassage.top;
+			// To keep passages onscreen.
+			newPassage.left = isNaN(newPassage.left) ? 0 : Math.max(0, newPassage.left);
+			newPassage.top = isNaN(newPassage.top) ? 0 : Math.max(0, newPassage.top);
 
 			newPassage.story = story.id;
 			story.passages.push(newPassage);
@@ -228,42 +227,16 @@ const storyStore = (module.exports = {
 			}
 
 			story.lastUpdate = new Date();
-			console.log(story);
-			console.log(story.passages);
 		},
 
 		UPDATE_PASSAGE_IN_STORY(state, storyId, passageId, props) {
-			let story;
+			let story = getStoryById(state, storyId);
+			let passage = getPassageInStory(story, passageId);
 
-			try {
-				story = getStoryById(state, storyId);
-			}
-			catch (e) {
-				console.log(e);
-				return;
-			}
 
-			/*
-			Force the top and left properties to be at least zero, to keep
-			passages onscreen.
-			*/
-
-			if (props.left && props.left < 0) {
-				props.left = 0;
-			}
-
-			if (props.top && props.top < 0) {
-				props.top = 0;
-			}
-
-			let passage;
-
-			try {
-				passage = getPassageInStory(story, passageId);
-			}
-			catch (e) {
-				return;
-			}
+			// To keep passages onscreen.
+			props.left = isNaN(props.left) ? passage.left : Math.max(0, props.left);
+			props.top = isNaN(props.top) ? passage.top : Math.max(0, props.top);
 
 			Object.assign(passage, props);
 			story.lastUpdate = new Date();
@@ -303,7 +276,7 @@ const storyStore = (module.exports = {
 		selected: false,
 
 		text: ui.hasPrimaryTouchUI()
-		? locale.say('Tap this passage, then the pencil icon to edit it.')
-		: locale.say('Double-click this passage to edit it.')
+			? locale.say('Tap this passage, then the pencil icon to edit it.')
+			: locale.say('Double-click this passage to edit it.')
 	}
 });

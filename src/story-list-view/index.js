@@ -210,7 +210,6 @@ module.exports = Vue.extend({
 	vuex: {
 		getters: {
 			stories: state => state.story.stories,
-			loaded: state => state.story.loaded
 		},
 		actions: {
 			importRemoteStories

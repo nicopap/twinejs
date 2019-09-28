@@ -155,6 +155,12 @@ module.exports = Vue.extend({
 			return Object.keys(zoomSettings).find(
 				key => zoomSettings[key] === this.story.zoom
 			);
+		},
+
+		isReadonly() {
+			let story = this.allStories.find(story => story.id === this.storyId);
+
+			return story.readOnly;
 		}
 	},
 

@@ -1,42 +1,79 @@
 const linkParser = require('../link-parser');
 const rect = require('../../common/rect');
 
+function byId(state, id) {
+	return state.story.stories.find(s => s.id === id);
+}
+function pById(story, id) {
+	return story.passages.find(p => p.id === id);
+}
+
 const actions = module.exports = {
-	createPassage({ dispatch }, storyId, props) {
-		dispatch('CREATE_PASSAGE_IN_STORY', storyId, props);
-	},
+	createPassage({state, dispatch}, storyId, props) {
+		let story = byId(state, storyId);
 
-	updatePassage({ dispatch }, storyId, passageId, props) {
-		dispatch('UPDATE_PASSAGE_IN_STORY', storyId, passageId, props);
-	},
+		if (!story.readOnly) {
+			let { name, top, left } = props;
 
-	deletePassage({ dispatch }, storyId, passageId) {
-		dispatch('DELETE_PASSAGE_IN_STORY', storyId, passageId);
-	},
-
-	selectPassages(store, storyId, filter) {
-		const story = store.state.story.stories.find(
-			story => story.id == storyId
-		);
-
-		if (!story) {
-			throw new Error(`No story exists with id ${storyId}`);
+			story.channel.pushmsg("add", [ name, [ left, top ]]);
+			dispatch('CREATE_PASSAGE_IN_STORY', storyId, props);
 		}
+	},
 
-		story.passages.forEach(p => {
-			const current = p.selected;
-			const wantSelect = filter(p);
+	updatePassage({state, dispatch}, storyId, passageId, props) {
+		let story = byId(state,storyId);
 
-			/* Only dispatch updates where there are changes. */
+		if (!story.readOnly) {
+			let passageName = pById(story, passageId).name;
+			let sendMsg = act => story.channel.pushmsg("set", [passageName, act]);
 
-			if (wantSelect !== current) {
-				store.dispatch(
-					'UPDATE_PASSAGE_IN_STORY',
-					storyId,
-					p.id,
-					{ selected: wantSelect });
+			if (props.top && props.left) {
+				sendMsg(["location", [props.left, props.top]]);
 			}
-		});
+			if (props.width) {sendMsg(["size", [props.width, props.height]]);}
+			if (props.name) {sendMsg(["name", props.name]);}
+			if (props.text) {sendMsg(["text", 0, props.text]);}
+			if (props.tags) {
+				let passageTags = pById(story, passageId).tags;
+
+				if (passageTags.length > props.tags.length) {
+					let delTag = passageTags[passageTags.length - 1];
+
+					sendMsg(["remove_tag", delTag]);
+				}
+				else if (passageTags.length < props.tags.length) {
+					let newTag = props.tags[props.tags.length - 1];
+
+					sendMsg(["add_tag", newTag]);
+				}
+			}
+			dispatch('UPDATE_PASSAGE_IN_STORY', storyId, passageId, props);
+		}
+	},
+
+	deletePassage({ state, dispatch }, storyId, passageId) {
+		let story = byId(state,storyId);
+
+		if (!story.readOnly) {
+			let passageName = pById(story, passageId).name;
+
+			story.channel.pushmsg("delete", [ passageName ]);
+			dispatch('DELETE_PASSAGE_IN_STORY', storyId, passageId);
+		}
+	},
+
+	selectPassages({ state, dispatch }, storyId, filter) {
+		let story = byId(state,storyId);
+
+		if (!story.readOnly) {
+			story.passages.forEach(p => {
+				let selected = filter(p);
+				let message = selected ? "select" : "deselect";
+
+				story.channel.pushmsg(message, [ p.name, state.pref.userName ]);
+				dispatch('UPDATE_PASSAGE_IN_STORY', storyId, p.id, { selected });
+			});
+		}
 	},
 
 	/*
@@ -49,9 +86,7 @@ const actions = module.exports = {
 			throw new Error('Asked to snap to a non-numeric grid size: ' + gridSize);
 		}
 
-		const story = store.state.story.stories.find(
-			story => story.id == storyId
-		);
+		const story = byId(store.state, storyId);
 
 		if (!story) {
 			throw new Error(`No story exists with id ${storyId}`);
@@ -83,9 +118,7 @@ const actions = module.exports = {
 		passages are separated out with 10 pixels between them.
 		*/
 
-		const displacementDistance = (story.snapToGrid && gridSize) ?
-			0
-			: 10;
+		const displacementDistance = (story.snapToGrid && gridSize) ?  0 : 10;
 
 		/* Displace by other passages. */
 
@@ -135,12 +168,8 @@ const actions = module.exports = {
 	*/
 
 	createNewlyLinkedPassages(store, storyId, passageId, oldText, gridSize) {
-		const story = store.state.story.stories.find(
-			story => story.id === storyId
-		);
-		const passage = story.passages.find(
-			passage => passage.id === passageId
-		);
+		const story = byId(store.state, storyId);
+		const passage = story.passages.find(p => p.id === passageId);
 
 		/* Determine how many passages we'll need to create. */
 
@@ -197,9 +226,7 @@ const actions = module.exports = {
 	changeLinksInStory(store, storyId, oldName, newName) {
 		// TODO: add hook for story formats to be more sophisticated
 
-		const story = store.state.story.stories.find(
-			story => story.id === storyId
-		);
+		const story = byId(store.state, storyId);
 
 		if (!story) {
 			throw new Error(`No story exists with id ${storyId}`);

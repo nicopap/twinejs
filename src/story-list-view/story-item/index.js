@@ -42,7 +42,7 @@ module.exports = Vue.extend({
 
 		lockedTitle() {
 			let author = this.story.author;
-			let msg = locale.say('This story is locked while %s is working on it.', author);
+			let msg = locale.say('This story will be read only while %s is working on it. You will not be able to make modifications to it, only see live ones from others.', author);
 
 			return isLocked(this.story)? msg : '';
 		},
@@ -100,16 +100,16 @@ module.exports = Vue.extend({
 		**/
 
 		edit() {
-			if (isLocked(this.story)) {
-				return;
-			}
 			const pos = this.$el.getBoundingClientRect();
 
-			this.openStory({
-				story: this.story,
-				appInfo: this.appInfo,
-				userName: this.userName
-			});
+			this.openStory(
+				{
+					story: this.story,
+					appInfo: this.appInfo,
+					userName: this.userName
+				},
+				isLocked(this.story)
+			);
 			new ZoomTransition({ data: {
 				x: pos.left + pos.width / 2,
 				y: pos.top,

@@ -31,68 +31,215 @@ function sendRequest(method, url, payload, callback) {
 	}
 }
 
-const actions = (module.exports = {
+function pByName(story, passageName) {
+	return story.passages.find(p => p.name == passageName)
+}
+function byId(store, storyId) {
+	return store.state.story.stories.find(s => s.id == storyId)
+}
+function byName(store, storyName) {
+	return store.state.story.stories.find(s => s.name == storyName)
+}
+function insertUnique(list, elem) {
+	return (list.some(x => x === elem)) ? list.concat(elem) : list
+}
+function normalizeStory(store, props) {
+	let normalizedProps = Object.assign({}, props);
+
+	if (!normalizedProps.storyFormat) {
+		normalizedProps.storyFormat = store.state.pref.defaultFormat.name;
+		normalizedProps.storyFormatVersion =
+			store.state.pref.defaultFormat.version;
+	}
+	return normalizedProps
+}
+
+function isLocked(story) {
+	if (story.lock_expiry) {
+		let now = Date.now();
+		let expiry_date = (new Date(story.lock_expiry)).getTime();
+
+		return now - expiry_date < 0;
+	}
+	else { return false; }
+}
+
+function messageActions({ state, dispatch }, storyId) {
+	let story = byId({state}, storyId);
+	return {
+		set: ([passName, passageAction]) => {
+			let passageId = pByName(story, passName).id
+			let updatePassage = props =>
+				dispatch('UPDATE_PASSAGE_IN_STORY', storyId, passageId, props);
+			switch (passageAction[0]) {
+				case "location": {
+					let [left,top] = passageAction[1];
+					updatePassage({ top, left })
+					break;
+				}
+				case "size": {
+					let [width,height] = passageAction[1];
+					updatePassage({ width, height })
+					break;
+				}
+				case "name": {
+					let name = passageAction[1];
+					updatePassage({ name })
+					break;
+				}
+				case "text": {
+					// HACK: we should switch to a more principled way of
+					// updating text in the future
+					let text = passageAction[2];
+					updatePassage({ text });
+					break;
+				}
+				case "add_tag": {
+					let tag = passageAction[1];
+					let passage = pByName(story, passName);
+					let tags = insertUnique(passage.tags, tag);
+					updatePassage({ tags })
+					break;
+				}
+				case "remove_tag": {
+					let tag = passageAction[1];
+					let passage = pByName(story, passName);
+					let tags = passage.tags.filter(t => t === tag);
+					updatePassage({ tags })
+					break;
+				}
+				default:
+					console.log(`unknown passage action: ${passageAction[0]}`);
+			}
+		},
+		add: ([name, [left, top]]) => {
+			dispatch('CREATE_PASSAGE_IN_STORY', storyId, { name, top, left });
+		},
+		delete: ([passName]) => {
+			let passageId = pByName(story, passName).id
+			dispatch('DELETE_PASSAGE_IN_STORY', storyId, passageId);
+		},
+		show_pointer: ([author, [x,y]]) => {
+			console.log(`sp:au${author}:${x}-${y}`)
+		},
+		select: ([passName, author]) => {
+			let passageId = pByName(story, passName).id
+			dispatch('UPDATE_PASSAGE_IN_STORY', storyId, passageId, { selected: true });
+		},
+		deselect: ([passName, author]) => {
+			let passageId = pByName(story, passName).id
+			dispatch('UPDATE_PASSAGE_IN_STORY', storyId, passageId, { selected: false });
+		},
+		set_story: (storyAction) => {
+			switch (storyAction[0]) {
+				case "name":
+					let name = storyAction[1];
+					dispatch('UPDATE_STORY', storyId, {name});
+					break;
+				case "starting_passage":
+					let startPassage = storyAction[1];
+					dispatch('UPDATE_STORY', storyId, {startPassage});
+					break;
+				case "tag":
+					let tag = storyAction[1];
+					let color = storyAction[2];
+					console.log(`changing tag ${tag} color to ${color} (NOT)`);
+					break;
+				default:
+					console.log(`unknown story action: ${storyAction[0]}`);
+			}
+		}
+	}
+};
+
+const actions = module.exports = {
 	initConn(store) {
 		let dispatch = store.dispatch;
 		let reactions = {
-			lock: ({story, user}) => { dispatch('LOCK_STORY', story, user) },
-			unlock: ({story}) => { dispatch('UNLOCK_STORY', story) },
-			created: ({story}) => { actions.importRemoteStories(store) }
+			lock: ({story, user}) => dispatch('LOCK_STORY', story, user),
+			unlock: ({story}) => dispatch('UNLOCK_STORY', story),
+			deleted: ({story}) =>
+				dispatch('DELETE_STORY', byName(store, story).id),
+			created: ({story, user}) => {
+				let props = { author: user, name: story };
+				dispatch('CREATE_STORY', normalizeStory(store, props))
+			}
 		};
 		store.dispatch('JOIN_LOBBY_NOTIF', reactions);
 	},
 
-    closeStory(store, id, appInfo) {
-        let story = store.state.story.stories.find(s => s.id === id)
-        store.dispatch('UNSET_SAVE_INTERVAL_ID', story.id)
-        actions.saveRemote(store, story.id, appInfo);
-        console.log(`attempting to close ${story}`)
-        sendRequest(
-            "POST",
-            "/api/stories/" + story.name + "/close",
-            { lock: story.lockId },
-            (_) => { console.log(`closed ${story} succefully`) }
-        )
-    },
+	closeStory(store, id, appInfo) {
+		let story = byId(store, id);
+		store.dispatch('LEAVE_STORY_CHANNEL', story.id);
+		if (story.readOnly) return;
 
-	createStory(store, props) {
-		let normalizedProps = Object.assign({}, props);
-
-		if (!normalizedProps.storyFormat) {
-			normalizedProps.storyFormat = store.state.pref.defaultFormat.name;
-			normalizedProps.storyFormatVersion =
-				store.state.pref.defaultFormat.version;
-		}
-		store.dispatch('CREATE_STORY', normalizedProps);
-	},
-
-	openStory(store, {story, appInfo, userName}) {
-		const storyName = encodeURI(story.name);
-        const intervalId = window.setInterval(() => {
-            actions.saveRemote(store, story.id, appInfo);
-            actions.refreshRemote(store, story.id);
-        }, 20 * 1000);
-        store.dispatch('SET_SAVE_INTERVAL_ID', story.id, intervalId);
-
+		store.dispatch('UNSET_SAVE_INTERVAL_ID', story.id)
+		actions.saveRemote(store, story.id, appInfo);
+		console.log(`attempting to close ${story.name}`)
 		sendRequest(
 			"POST",
-			"/api/stories/" + storyName + "/open",
-			{ user: userName },
-			(storyLockId) => {
-                store.dispatch('SET_LOCK_ID', {
-                    lockId: storyLockId,
-                    storyId: story.id 
-                })
+			"/api/stories/" + encodeURI(story.name) + "/close",
+			{ lock: story.lockId },
+			(_) => {
+				console.log(`closed ${story.name} succefully`)
 			}
-		);
+		)
 	},
 
-	updateStory({dispatch}, id, props) {
-		dispatch('UPDATE_STORY', id, props);
+	createStory(store, props) {
+		store.dispatch('CREATE_STORY', normalizeStory(store, props));
 	},
 
-	deleteStory({dispatch}, id) {
-		dispatch('DELETE_STORY', id);
+	openStory(store, {story, appInfo, userName}, readOnly) {
+		if (readOnly) {
+			let readOnlyActions = messageActions(store, story.id);
+			store.dispatch('JOIN_STORY_CHANNEL', story.id, readOnlyActions);
+			store.dispatch('UPDATE_STORY', story.id, { readOnly: true });
+		} else {
+			let writeActions = {};
+			store.dispatch('LEAVE_LOBBY_NOTIF', story.id);
+			sendRequest(
+				"POST",
+				"/api/stories/" + encodeURI(story.name) + "/open",
+				{ user: userName },
+				(storyLockId) => {
+					const intervalId = window.setInterval(() => {
+						actions.refreshRemote(store, story.id);
+					}, 20 * 1000);
+					store.dispatch('SET_SAVE_INTERVAL_ID', story.id, intervalId);
+					store.dispatch('LOCK_STORY', story.name, userName);
+					store.dispatch('JOIN_STORY_CHANNEL', story.id, writeActions);
+					store.dispatch('SET_LOCK_ID', {
+						lockId: storyLockId,
+						storyId: story.id 
+					})
+				}
+			);
+		}
+	},
+
+	updateStory(store, id, props) {
+		let story = byId(store, id);
+
+		if (story.readOnly) {
+			return
+		}
+		if (props.startPassage) {
+			story.channel.pushmsg("set_story", ["starting_passage", props.startPassage])
+		}
+		if (props.name) {
+			story.channel.pushmsg("set_story", ["name", props.name])
+		}
+		store.dispatch('UPDATE_STORY', id, props);
+	},
+
+	deleteStory(store, id) {
+		let story = byId(store, id);
+		let deleteUrl = "/api/stories/" + encodeURI(story.name) + "/delete"
+		sendRequest("POST", deleteUrl, null, (_) => {});
+		// We don't delete anything here, because the server will send back a
+		// "deleted" message if the delection was succesful, we only want to
+		// reflect the change if it was done by the server.
 	},
 
 	duplicateStory({dispatch}, id, newName) {
@@ -100,10 +247,7 @@ const actions = (module.exports = {
 	},
 
 	importRemoteStories({dispatch}) {
-		dispatch('SET_LOAD_COUNT', -1);
-		dispatch('TRIM_SESSION_STORIES');
 		sendRequest("GET", "/api/stories", null, (serverStories) => {
-			dispatch('SET_LOAD_COUNT', -(serverStories.length));
 			serverStories.forEach(storyData => {
 
 				var req = new XMLHttpRequest();
@@ -123,10 +267,15 @@ const actions = (module.exports = {
 						if (deserialized.length > 0) {
 							dispatch('IMPORT_STORY', deserialized[0]);
 						} else {
-							console.warn(`Recieved an empty story from server ${storyData.name}`)
+							console.warn(`Recieved an empty story from server ${storyData.name}, requesting delete`)
+							let deleteUrl = (
+								"/api/stories/"
+								+ encodeURI(storyData.name)
+								+ "/delete"
+							)
+							sendRequest("POST", deleteUrl, null, (_) => {});
 						}
 					}
-					dispatch('INCREMENT_LOAD_COUNT');
 				};
 				req.send();
 			});
@@ -138,9 +287,7 @@ const actions = (module.exports = {
 	},
 
 	setTagColorInStory(store, storyId, tagName, tagColor) {
-		const story = store.state.story.stories.find(
-			story => story.id == storyId
-		);
+		const story = byId(store, storyId);
 		let toMerge = {};
 
 		toMerge[tagName] = tagColor;
@@ -155,7 +302,7 @@ const actions = (module.exports = {
 	},
 
 	saveRemote(store, storyId, appInfo) {
-		const story = store.state.story.stories.find(v => v.id == storyId);
+		const story = byId(store, storyId);
 
 		const storyLockId = story.lockId;
 		const storyName = encodeURI(story.name);
@@ -178,7 +325,7 @@ const actions = (module.exports = {
 			"/api/stories/" + storyName + "/keepup",
 			{ lock: storyLockId },
 			(response) => { 
-				console.log(response)
+				console.log("keepup response:", response)
 				/*TODO: escalate save errors*/ 
 			},
 		);
@@ -290,4 +437,4 @@ const actions = (module.exports = {
 			}
 		});
 	}
-});
+};
