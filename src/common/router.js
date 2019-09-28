@@ -6,7 +6,7 @@ const LocaleView = require('../locale/view');
 const StoryEditView = require('../story-edit-view');
 const StoryListView = require('../story-list-view');
 const WelcomeView = require('../welcome');
-const locale = require('../locale'); 
+const locale = require('../locale');
 const { getStoryPlayHtml, getStoryProofingHtml, getStoryTestHtml } = require('./story-html');
 const replaceUI = require('../ui/replace');
 const store = require('../data/store');
@@ -56,7 +56,7 @@ TwineRouter.map({
 			components: {'story-edit': StoryEditView},
 
 			data() {
-				return {id: this.$route.params.id};
+				return {id: decodeURIComponent(this.$route.params.id)};
 			}
 		}
 	},
@@ -69,7 +69,7 @@ TwineRouter.map({
 	'/stories/:id/play': {
 		component: {
 			ready() {
-				getStoryPlayHtml(this.$store, this.$route.params.id)
+				getStoryPlayHtml(this.$store, decodeURIComponent(this.$route.params.id))
 					.then(replaceUI)
 					.catch(e => {
 						window.alert(
@@ -90,7 +90,7 @@ TwineRouter.map({
 	'/stories/:id/proof': {
 		component: {
 			ready() {
-				getStoryProofingHtml(this.$store, this.$route.params.id)
+				getStoryProofingHtml(this.$store, decodeURIComponent(this.$route.params.id))
 					.then(replaceUI)
 					.catch(e => {
 						window.alert(
@@ -111,7 +111,7 @@ TwineRouter.map({
 	'/stories/:id/test': {
 		component: {
 			ready() {
-				getStoryTestHtml(this.$store, this.$route.params.id)
+				getStoryTestHtml(this.$store, decodeURIComponent(this.$route.params.id))
 					.then(replaceUI)
 					.catch(e => {
 						window.alert(

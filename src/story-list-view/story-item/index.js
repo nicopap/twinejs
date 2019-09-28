@@ -93,12 +93,6 @@ module.exports = Vue.extend({
 	},
 
 	methods: {
-		/**
-		 Opens a StoryEditView for this story.
-
-		 @method edit
-		**/
-
 		edit() {
 			const pos = this.$el.getBoundingClientRect();
 
@@ -106,7 +100,7 @@ module.exports = Vue.extend({
 				{
 					story: this.story,
 					appInfo: this.appInfo,
-					userName: this.userName
+					user: this.userName
 				},
 				isLocked(this.story)
 			);
@@ -114,7 +108,7 @@ module.exports = Vue.extend({
 				x: pos.left + pos.width / 2,
 				y: pos.top,
 			}}).$mountTo(this.$el).then(
-				() => window.location.hash = '#stories/' + this.story.id
+				() => window.location.hash = '#stories/' + encodeURIComponent(this.story.id)
 			);
 		},
 	},

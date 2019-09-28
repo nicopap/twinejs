@@ -8,6 +8,18 @@ const semverUtils = require('semver-utils');
 const latestFormatVersions = require('../latest-format-versions');
 const importFile = require('../import');
 
+let apiStory = name =>"/api/stories/" + btoa(name)
+const api = {
+	stories: () => "/api/stories",
+	story: name => apiStory(name),
+	open: name => apiStory(name) + "/open",
+	close: name => apiStory(name) + "/close",
+	keepup: name => apiStory(name) + "/keepup",
+	save: name => apiStory(name) + "/save",
+	delete: name => apiStory(name) + "/delete",
+	rename: name => apiStory(name) + "/rename"
+}
+
 function sendRequest(method, url, payload, callback) {
 	var req = new XMLHttpRequest();
 
@@ -132,10 +144,6 @@ function messageActions({ state, dispatch }, storyId) {
 		},
 		set_story: (storyAction) => {
 			switch (storyAction[0]) {
-				case "name":
-					let name = storyAction[1];
-					dispatch('UPDATE_STORY', storyId, {name});
-					break;
 				case "starting_passage":
 					let startPassage = storyAction[1];
 					dispatch('UPDATE_STORY', storyId, {startPassage});
@@ -160,6 +168,8 @@ const actions = module.exports = {
 			unlock: ({story}) => dispatch('UNLOCK_STORY', story),
 			deleted: ({story}) =>
 				dispatch('DELETE_STORY', byName(store, story).id),
+			renamed: ({story, newName}) =>
+				dispatch('UPDATE_STORY', story, {name: newName}),
 			created: ({story, user}) => {
 				let props = { author: user, name: story };
 				dispatch('CREATE_STORY', normalizeStory(store, props))
@@ -178,11 +188,9 @@ const actions = module.exports = {
 		console.log(`attempting to close ${story.name}`)
 		sendRequest(
 			"POST",
-			"/api/stories/" + encodeURI(story.name) + "/close",
+			api.close(story.name),
 			{ lock: story.lockId },
-			(_) => {
-				console.log(`closed ${story.name} succefully`)
-			}
+			(_) => console.log(`closed ${story.name} succefully`)
 		)
 	},
 
@@ -190,27 +198,26 @@ const actions = module.exports = {
 		store.dispatch('CREATE_STORY', normalizeStory(store, props));
 	},
 
-	openStory(store, {story, appInfo, userName}, readOnly) {
+	openStory(store, {story, appInfo, user}, readOnly) {
 		if (readOnly) {
 			let readOnlyActions = messageActions(store, story.id);
 			store.dispatch('JOIN_STORY_CHANNEL', story.id, readOnlyActions);
 			store.dispatch('UPDATE_STORY', story.id, { readOnly: true });
 		} else {
 			let writeActions = {};
-			store.dispatch('LEAVE_LOBBY_NOTIF', story.id);
 			sendRequest(
 				"POST",
-				"/api/stories/" + encodeURI(story.name) + "/open",
-				{ user: userName },
-				(storyLockId) => {
+				api.open(story.name),
+				{ user },
+				(lockId) => {
 					const intervalId = window.setInterval(() => {
 						actions.refreshRemote(store, story.id);
 					}, 20 * 1000);
 					store.dispatch('SET_SAVE_INTERVAL_ID', story.id, intervalId);
-					store.dispatch('LOCK_STORY', story.name, userName);
+					store.dispatch('LOCK_STORY', story.name, user);
 					store.dispatch('JOIN_STORY_CHANNEL', story.id, writeActions);
 					store.dispatch('SET_LOCK_ID', {
-						lockId: storyLockId,
+						lockId,
 						storyId: story.id 
 					})
 				}
@@ -228,15 +235,16 @@ const actions = module.exports = {
 			story.channel.pushmsg("set_story", ["starting_passage", props.startPassage])
 		}
 		if (props.name) {
-			story.channel.pushmsg("set_story", ["name", props.name])
+			let renameUrl = api.rename(story.name);
+			sendRequest("POST", renameUrl, {newName: props.name}, (_) => {});
+		} else {
+			store.dispatch('UPDATE_STORY', id, props);
 		}
-		store.dispatch('UPDATE_STORY', id, props);
 	},
 
 	deleteStory(store, id) {
 		let story = byId(store, id);
-		let deleteUrl = "/api/stories/" + encodeURI(story.name) + "/delete"
-		sendRequest("POST", deleteUrl, null, (_) => {});
+		sendRequest("POST", api.delete(story.name), null, (_) => {});
 		// We don't delete anything here, because the server will send back a
 		// "deleted" message if the delection was succesful, we only want to
 		// reflect the change if it was done by the server.
@@ -247,12 +255,13 @@ const actions = module.exports = {
 	},
 
 	importRemoteStories({dispatch}) {
-		sendRequest("GET", "/api/stories", null, (serverStories) => {
+		sendRequest("GET", api.stories(), null, (serverStories) => {
 			serverStories.forEach(storyData => {
+				let name = storyData.name;
 
 				var req = new XMLHttpRequest();
 
-				req.open("GET", "/api/stories/" + storyData.name);
+				req.open("GET", api.story(name));
 				req.onreadystatechange = function () {
 
 					if(req.readyState === 4 && req.status === 200) {
@@ -265,14 +274,12 @@ const actions = module.exports = {
 						);
 
 						if (deserialized.length > 0) {
-							dispatch('IMPORT_STORY', deserialized[0]);
+							let toImport = deserialized[0]
+							Object.assign(toImport, { name, id: name });
+							dispatch('IMPORT_STORY', toImport);
 						} else {
 							console.warn(`Recieved an empty story from server ${storyData.name}, requesting delete`)
-							let deleteUrl = (
-								"/api/stories/"
-								+ encodeURI(storyData.name)
-								+ "/delete"
-							)
+							let deleteUrl = api.delete(name)
 							sendRequest("POST", deleteUrl, null, (_) => {});
 						}
 					}
@@ -305,11 +312,10 @@ const actions = module.exports = {
 		const story = byId(store, storyId);
 
 		const storyLockId = story.lockId;
-		const storyName = encodeURI(story.name);
 		const publishValue = publish.publishStory(appInfo, story, null, null, true);
 		sendRequest(
 			"POST",
-			"/api/stories/" + storyName + "/save", 
+			api.save(story.name),
 			{ lock: storyLockId, file: btoa(publishValue) },
 			(_) => {},
 		);
@@ -318,11 +324,10 @@ const actions = module.exports = {
 	refreshRemote(store, storyId) {
 		const story = store.state.story.stories.find(v => v.id == storyId);
 		const storyLockId = story.lockId;
-		const storyName = encodeURI(story.name);
 
 		sendRequest(
 			"POST",
-			"/api/stories/" + storyName + "/keepup",
+			api.keepup(story.name),
 			{ lock: storyLockId },
 			(response) => { 
 				console.log("keepup response:", response)

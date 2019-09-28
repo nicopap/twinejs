@@ -37,6 +37,7 @@ const actions = module.exports = {
 				let passageTags = pById(story, passageId).tags;
 
 				if (passageTags.length > props.tags.length) {
+					//FIXME: probably not what is intended here
 					let delTag = passageTags[passageTags.length - 1];
 
 					sendMsg(["remove_tag", delTag]);
