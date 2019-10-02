@@ -78,38 +78,20 @@ module.exports = Vue.extend({
 		*/
 
 		cssDimensions() {
-			let width = this.winWidth;
-			let height = this.winHeight;
-			let passagesWidth = 0;
-			let passagesHeight = 0;
+			let maxes =
+				([ maxWidth, maxHeight ], { left, top, width, height }) => [
+					maxWidth > left + width ? maxWidth : left + width,
+					maxHeight > top + height ? maxHeight : top + height
+				];
+			let [width, height] = this.story.passages.reduce(maxes, [0,0]);
 
-			this.story.passages.forEach(p => {
-				const right = p.left + p.width;
-				const bottom = p.top + p.height;
-
-				if (right > passagesWidth) {
-					passagesWidth = right;
-				}
-
-				if (bottom > passagesHeight) {
-					passagesHeight = bottom;
-				}
-			});
-
-			width = Math.max(passagesWidth * this.story.zoom, this.winWidth);
-			height = Math.max(passagesHeight * this.story.zoom, this.winHeight);
-
-			/*
-			Give some space below and to the right for the user to add
-			passages.
-			*/
-
-			width += this.winWidth / 2;
-			height += this.winHeight / 2;
+			let zoomAdjust = x => x * this.story.zoom;
+			let maxWidth = Math.max(zoomAdjust(width), this.winWidth) * 1.5;
+			let maxHeight = Math.max(zoomAdjust(height), this.winHeight) * 1.5;
 
 			return {
-				width: width + 'px',
-				height: height + 'px'
+				width: maxWidth + 'px',
+				height: maxHeight + 'px'
 			};
 		},
 

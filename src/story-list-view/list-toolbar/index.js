@@ -33,7 +33,7 @@ module.exports = Vue.extend({
 				buttonClass: 'create',
 				validator: name => {
 					if (
-						this.existingStories.find(story => story.name === name)
+						this.stories.find(story => story.name === name)
 					) {
 						return locale.say(
 							'A story with this name already exists.'
@@ -50,8 +50,7 @@ module.exports = Vue.extend({
 				window.setTimeout(() => {
 					this.$dispatch(
 						'story-edit',
-						this.existingStories.find(story => story.name === name)
-							.id
+						this.stories.find(story => story.name === name).id
 					);
 				}, 300);
 			});
@@ -70,7 +69,7 @@ module.exports = Vue.extend({
 				.replace(/[\/:\\]/g, '.');
 
 			saveFile(
-				publishArchive(this.existingStories, this.appInfo),
+				publishArchive(this.stories, this.appInfo),
 				`${timestamp} ${locale.say('Twine Archive.html')}`
 			);
 		},
@@ -111,7 +110,7 @@ module.exports = Vue.extend({
 
 		getters: {
 			appInfo: state => state.appInfo,
-			existingStories: state => state.story.stories,
+			stories: state => state.story.stories,
 			pref: state => state.pref
 		}
 	}
