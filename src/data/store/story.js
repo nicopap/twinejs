@@ -94,6 +94,11 @@ const storyStore = (module.exports = {
 		},
 
 		CREATE_STORY(state, props) {
+			if (getStoryByName(state, props.name)) {
+				console.warn(`${props.name} already exists, won't create it!`);
+				return;
+			}
+
 			let story = Object.assign(
 				{
 					id: idFor(props.name),
@@ -110,7 +115,6 @@ const storyStore = (module.exports = {
 			if (story.passages) {
 				story.passages.forEach(passage => (passage.story = story.id));
 			}
-
 			state.stories.push(story);
 		},
 
