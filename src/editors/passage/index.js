@@ -35,6 +35,12 @@ module.exports = Vue.extend({
 	}),
 
 	computed: {
+		readOnly() {
+			let story = this.allStories.find(story => story.id === this.storyId);
+
+			return story.readOnly;
+		},
+
 		cmOptions() {
 			return {
 				placeholder: locale.say(
@@ -52,7 +58,11 @@ module.exports = Vue.extend({
 				indentWithTabs: true,
 				lineWrapping: true,
 				lineNumbers: false,
-				mode: 'text'
+				mode: 'text',
+				readOnly: this
+					.allStories
+					.find(story => story.id === this.storyId)
+					.readOnly
 			};
 		},
 
