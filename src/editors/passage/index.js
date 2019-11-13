@@ -79,7 +79,7 @@ module.exports = Vue.extend({
 		userPassageNameValid() {
 			return !(this.parentStory.passages.some(
 				passage => passage.name === this.userPassageName &&
-					passage.id !== this.passage.id
+					 passage.id !== this.passage.id
 			));
 		},
 		
@@ -142,11 +142,11 @@ module.exports = Vue.extend({
 			});
 		},
 
-		saveText(text) {
+		saveText(text, other) {
 			this.updatePassage(
 				this.parentStory.id,
 				this.passage.id,
-				{ text: text }
+				Object.assign({ text }, other)
 			);
 		},
 

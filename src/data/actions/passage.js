@@ -32,7 +32,8 @@ const actions = module.exports = {
 			}
 			if (props.width) {sendMsg(["size", [props.width, props.height]]);}
 			if (props.name) {sendMsg(["name", props.name]);}
-			if (props.text) {sendMsg(["text", 0, props.text]);}
+			if (props.added) {sendMsg(["add", props.ch, props.added]);}
+			if (props.deleted) {sendMsg(["del", props.ch, props.deleted]);}
 			if (props.tags) {
 				let passageTags = pById(story, passageId).tags;
 

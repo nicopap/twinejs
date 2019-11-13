@@ -30,11 +30,9 @@ CodeMirror.defineOption('prefixTrigger', [], (cm, opts) => {
 
 		// back up two words from the cursor
 
-		const curWord = cm.findWordAt(cm.getDoc().getCursor());
+		let { line, ch } = cm.findWordAt(cm.getDoc().getCursor()).anchor;
 
-		curWord.anchor.ch--;
-
-		const prevWordRange = cm.findWordAt(curWord.anchor);
+		const prevWordRange = cm.findWordAt({ line, ch: ch - 1 });
 		const prevWord = cm.getRange(prevWordRange.anchor, prevWordRange.head);
 
 		// do we have a match?

@@ -99,11 +99,20 @@ function messageActions({ state, dispatch }, storyId) {
 					updatePassage({ name })
 					break;
 				}
-				case "text": {
-					// HACK: we should switch to a more principled way of
-					// updating text in the future
-					let text = passageAction[2];
-					updatePassage({ text });
+				case "del": {
+					let del = {
+						from: passageAction[1],
+						size: passageAction[2]
+					};
+					updatePassage({ del });
+					break;
+				}
+				case "add": {
+					let add = {
+						from: passageAction[1],
+						text: passageAction[2]
+					};
+					updatePassage({ add });
 					break;
 				}
 				case "add_tag": {

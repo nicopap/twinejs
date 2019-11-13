@@ -22,6 +22,21 @@ module.exports = Vue.extend({
 	},
 
 	compiled() {
+		function dedup({ from, removed, text }) {
+			let prevText = removed.join('\n');
+			let newText = text.join('\n');
+			let minSize = Math.min(newText.length, prevText.length);
+
+			for (var i = 0; i < minSize; i++) {
+				if (prevText[i] != newText[i]) { break; }
+			}
+
+			return {
+				added: newText.substring(i),
+				deleted: prevText.length - i,
+				ch: from.ch + i
+			};
+		}
 		this.$cm = CodeMirror(this.$el, this.options);
 		this.$cm.setValue((this.text || '') + '');
 
@@ -32,9 +47,9 @@ module.exports = Vue.extend({
 
 		this.$cm.clearHistory();
 
-		this.$cm.on('change', () => {
+		this.$cm.on('change', (_,b) => {
 			this.text = this.$cm.getValue();
-			this.$dispatch('cm-change', this.text);
+			this.$dispatch('cm-change', this.text, dedup(b));
 		});
 	},
 

@@ -242,6 +242,22 @@ const storyStore = (module.exports = {
 			props.left = isNaN(props.left) ? passage.left : Math.max(0, props.left);
 			props.top = isNaN(props.top) ? passage.top : Math.max(0, props.top);
 
+			if (props.del) {
+				let { from, size } = props.del;
+				let pText = passage.text;
+				let patchedText = pText.slice(0,from) + pText.slice(from + size);
+
+				props.text = patchedText;
+				delete props.del;
+			}
+			if (props.add) {
+				let { from, text } = props.add;
+				let pText = passage.text;
+				let patchedText = pText.slice(0,from) + text + pText.slice(from);
+
+				props.text = patchedText;
+				delete props.add;
+			}
 			Object.assign(passage, props);
 			story.lastUpdate = new Date();
 		},
