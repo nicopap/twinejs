@@ -14,8 +14,6 @@ const api = {
 	story: name => apiStory(name),
 	open: name => apiStory(name) + "/open",
 	close: name => apiStory(name) + "/close",
-	keepup: name => apiStory(name) + "/keepup",
-	save: name => apiStory(name) + "/save",
 	delete: name => apiStory(name) + "/delete",
 	rename: name => apiStory(name) + "/rename"
 }
@@ -64,16 +62,6 @@ function normalizeStory(store, props) {
 			store.state.pref.defaultFormat.version;
 	}
 	return normalizedProps
-}
-
-function isLocked(story) {
-	if (story.lock_expiry) {
-		let now = Date.now();
-		let expiry_date = (new Date(story.lock_expiry)).getTime();
-
-		return now - expiry_date < 0;
-	}
-	else { return false; }
 }
 
 function messageActions({ state, dispatch }, storyId) {
@@ -173,8 +161,8 @@ const actions = module.exports = {
 	initConn(store) {
 		let dispatch = store.dispatch;
 		let reactions = {
-			lock: ({story, user}) => dispatch('LOCK_STORY', story, user),
-			unlock: ({story}) => dispatch('UNLOCK_STORY', story),
+			joined: ({story, user}) => dispatch('JOIN_STORY', story, user),
+			left: ({story, user}) => dispatch('LEAVE_STORY', story, user),
 			deleted: ({story}) =>
 				dispatch('DELETE_STORY', byName(store, story).id),
 			renamed: ({story, newName}) =>
@@ -190,9 +178,6 @@ const actions = module.exports = {
 	closeStory(store, id, appInfo) {
 		let story = byId(store, id);
 		store.dispatch('LEAVE_STORY_CHANNEL', story.id);
-		if (story.readOnly) return;
-
-		store.dispatch('UNSET_SAVE_INTERVAL_ID', story.id)
 		actions.saveRemote(store, story.id, appInfo);
 		console.log(`attempting to close ${story.name}`)
 		sendRequest(
@@ -207,39 +192,13 @@ const actions = module.exports = {
 		store.dispatch('CREATE_STORY', normalizeStory(store, props));
 	},
 
-	openStory(store, {story, appInfo, user}, readOnly) {
-		if (readOnly) {
-			let readOnlyActions = messageActions(store, story.id);
-			store.dispatch('JOIN_STORY_CHANNEL', story.id, readOnlyActions);
-			store.dispatch('UPDATE_STORY', story.id, { readOnly: true });
-		} else {
-			let writeActions = {};
-			sendRequest(
-				"POST",
-				api.open(story.name),
-				{ user },
-				(lockId) => {
-					const intervalId = window.setInterval(() => {
-						actions.refreshRemote(store, story.id);
-					}, 20 * 1000);
-					store.dispatch('SET_SAVE_INTERVAL_ID', story.id, intervalId);
-					store.dispatch('LOCK_STORY', story.name, user);
-					store.dispatch('JOIN_STORY_CHANNEL', story.id, writeActions);
-					store.dispatch('SET_LOCK_ID', {
-						lockId,
-						storyId: story.id 
-					})
-				}
-			);
-		}
+	openStory(store, {story, appInfo, user}) {
+		store.dispatch('JOIN_STORY_CHANNEL', story.id);
 	},
 
 	updateStory(store, id, props) {
 		let story = byId(store, id);
 
-		if (story.readOnly) {
-			return
-		}
 		if (props.startPassage) {
 			story.channel.pushmsg("set_story", ["starting_passage", props.startPassage])
 		}

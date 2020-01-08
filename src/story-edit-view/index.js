@@ -139,11 +139,6 @@ module.exports = Vue.extend({
 			);
 		},
 
-		isReadonly() {
-			let story = this.allStories.find(story => story.id === this.storyId);
-
-			return story.readOnly;
-		}
 	},
 
 	watch: {

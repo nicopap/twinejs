@@ -8,24 +8,10 @@
 @color-graph-lines-bold: lighten(@color-link, 47%);
 @color-graph-lines-bold-dark: lighten(@color-graph-lines-dark, 3%);
 
-.readonly {
-	filter: opacity(70%);
-}
-.readonly::after {
-    content: "READ ONLY";
-    position: absolute;
-    top: 0;
-    left: 0;
-    padding: 20%;
-    font-size: 300px;
-	font-weight: 900;
-	filter: opacity(20%);
-	line-height: 0.8;
-}
 .graph-large, .graph-medium, .graph-small {
 	background-color: @color-graph-paper;
-    background-image: linear-gradient(to right, @color-graph-lines-bold 1px, transparent 1px), linear-gradient(to bottom, @color-graph-lines-bold 1px, transparent 1px), linear-gradient(to right, @color-graph-lines 1px, transparent 1px), linear-gradient(to bottom, @color-graph-lines 1px, transparent 1px);
-    background-size: 100px 100px, 100px 100px, 25px 25px, 25px 25px;
+	background-image: linear-gradient(to right, @color-graph-lines-bold 1px, transparent 1px), linear-gradient(to bottom, @color-graph-lines-bold 1px, transparent 1px), linear-gradient(to right, @color-graph-lines 1px, transparent 1px), linear-gradient(to bottom, @color-graph-lines 1px, transparent 1px);
+	background-size: 100px 100px, 100px 100px, 25px 25px, 25px 25px;
 
 	.theme-dark & {
 		background-color: @color-graph-paper-dark;
@@ -34,12 +20,12 @@
 }
 
 .graph-medium {
-    background-size: 60px 60px, 60px 60px, 15px 15px, 15px 15px;
+	background-size: 60px 60px, 60px 60px, 15px 15px, 15px 15px;
 }
 
 .graph-small {
-    background-image: linear-gradient(to right, @color-graph-lines 1px, transparent 1px), linear-gradient(to bottom, @color-graph-lines 1px, transparent 1px);
-    background-size: 25px 25px, 25px 25px;
+	background-image: linear-gradient(to right, @color-graph-lines 1px, transparent 1px), linear-gradient(to bottom, @color-graph-lines 1px, transparent 1px);
+	background-size: 25px 25px, 25px 25px;
 
 	.theme-dark & {
 		background-image: linear-gradient(to right, @color-graph-lines-dark 1px, transparent 1px), linear-gradient(to bottom, @color-graph-lines-dark 1px, transparent 1px);

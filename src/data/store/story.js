@@ -39,7 +39,7 @@ const storyStore = (module.exports = {
 			let socket = new Socket("/socket");
 
 			socket.connect();
-			let channel = socket.channel("locks:_",{});
+			let channel = socket.channel("library:*",{});
 
 			Object.entries(onMessageActions)
 				.forEach(([msg, handler]) => { channel.on(msg, handler); });
@@ -61,36 +61,17 @@ const storyStore = (module.exports = {
 						handler(body);
 					})
 				);
-			channel.join()
+			channel.join({user: state.userName})
 				.receive("ok", _ => { console.log("Sent a message"); })
 				.receive("error", r => { console.log("Failed to send message:", r); });
 			channel.pushmsg = (msg, body) => channel.push(msg, {body});
 			story.channel = channel;
 		},
+
 		LEAVE_STORY_CHANNEL(state, storyId) {
 			let story = getStoryById(state, storyId);
 
 			story.channel.leave();
-			state.socket.channel("locks:_").join();
-		},
-
-		UNLOCK_STORY(state, storyName) {
-			let story = getStoryByName(state, storyName);
-
-			story.lock_expiry = '1970-01-01'; // 🤫
-		},
-
-		LOCK_STORY(state, storyName, author) {
-			let story = getStoryByName(state, storyName);
-
-			story.author = author;
-			story.lock_expiry = '2038-01-18'; // 🤫
-		},
-
-		SET_LOCK_ID(state, {lockId, storyId}) {
-			let story = getStoryById(state, storyId);
-
-			story.lockId = lockId;
 		},
 
 		CREATE_STORY(state, props) {
@@ -189,19 +170,6 @@ const storyStore = (module.exports = {
 			}
 		},
 
-		SET_SAVE_INTERVAL_ID(state, storyId, interval) {
-			let story = getStoryById(state, storyId);
-
-			story.saveInterval = interval;
-		},
-
-		UNSET_SAVE_INTERVAL_ID(state, storyId) {
-			let story = getStoryById(state, storyId);
-
-			window.clearInterval(story.saveInterval);
-			story.saveInterval = null;
-		},
-
 		DELETE_STORY(state, id) {
 			state.stories = state.stories.filter(story => story.id !== id);
 		},
@@ -276,6 +244,7 @@ const storyStore = (module.exports = {
 
 	storyDefaults: {
 		name: locale.say('Untitled Story'),
+		authors: new Set(),
 		startPassage: -1,
 		zoom: 1,
 		snapToGrid: false,
