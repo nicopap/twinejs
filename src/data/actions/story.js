@@ -193,7 +193,8 @@ const actions = module.exports = {
 	},
 
 	openStory(store, {story, appInfo, user}) {
-		store.dispatch('JOIN_STORY_CHANNEL', story.id);
+		let actions = messageActions(store, story.id);
+		store.dispatch('JOIN_STORY_CHANNEL', story.id, actions);
 	},
 
 	updateStory(store, id, props) {

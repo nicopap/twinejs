@@ -52,7 +52,7 @@ const storyStore = (module.exports = {
 		JOIN_STORY_CHANNEL(state, storyId, onMessageActions) {
 			let story = getStoryById(state, storyId);
 			let socket = state.socket;
-			let channel = socket.channel(`story:${story.name}`, {});
+			let channel = socket.channel(`story:${story.name}`, {user: state.userName});
 
 			Object.entries(onMessageActions)
 				.forEach(([msg, handler]) =>
@@ -61,10 +61,11 @@ const storyStore = (module.exports = {
 						handler(body);
 					})
 				);
-			channel.join({user: state.userName})
+			channel.join()
 				.receive("ok", _ => { console.log("Sent a message"); })
 				.receive("error", r => { console.log("Failed to send message:", r); });
-			channel.pushmsg = (msg, body) => channel.push(msg, {body});
+			channel.pushmsg = (author, msg, body) =>
+				channel.push(msg, {body, author});
 			story.channel = channel;
 		},
 

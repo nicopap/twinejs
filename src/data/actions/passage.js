@@ -25,7 +25,8 @@ const actions = module.exports = {
 
 		if (!story.readOnly) {
 			let passageName = pById(story, passageId).name;
-			let sendMsg = act => story.channel.pushmsg("set", [passageName, act]);
+			let sendMsg = act =>
+				story.channel.pushmsg(state.userName, "set", [passageName, act]);
 
 			if (props.top && props.left) {
 				sendMsg(["location", [props.left, props.top]]);
