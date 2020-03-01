@@ -117,6 +117,14 @@ function messageActions({ state, dispatch }, storyId) {
 					updatePassage({ tags })
 					break;
 				}
+				case "select": {
+					updatePassage({selected: true});
+					break;
+				}
+				case "deselect": {
+					updatePassage({selected: false});
+					break;
+				}
 				default:
 					console.log(`unknown passage action: ${passageAction[0]}`);
 			}
@@ -130,14 +138,6 @@ function messageActions({ state, dispatch }, storyId) {
 		},
 		show_pointer: ([author, [x,y]]) => {
 			console.log(`sp:au${author}:${x}-${y}`)
-		},
-		select: ([passName, author]) => {
-			let passageId = pByName(story, passName).id
-			dispatch('UPDATE_PASSAGE_IN_STORY', storyId, passageId, { selected: true });
-		},
-		deselect: ([passName, author]) => {
-			let passageId = pByName(story, passName).id
-			dispatch('UPDATE_PASSAGE_IN_STORY', storyId, passageId, { selected: false });
 		},
 		set_story: (storyAction) => {
 			switch (storyAction[0]) {
@@ -153,6 +153,31 @@ function messageActions({ state, dispatch }, storyId) {
 				default:
 					console.log(`unknown story action: ${storyAction[0]}`);
 			}
+		},
+		sync: (story) => {
+			let toLocalPassage = (passage) => ({
+				name: passage.name,
+				selected: false,
+				story: storyId,
+				tags: passage.tags,
+				top: passage.location[0],
+				left: passage.location[1],
+				height: passage.size[0],
+				width: passage.size[1]
+			});
+			let localStory = {
+				authors: new Set(story.authors),
+				name: story.name,
+				passages: story.passage.map(toLocalPassage),
+				script: '',
+				snapToGrid: false,
+				startPassage: story.starting_passage,
+				storyFormat: '',
+				storyFormatVersion: '',
+				stylesheet: '',
+				zoom: 1
+			}
+			dispatch('UPDATE_STORY', storyId, story)
 		}
 	}
 };
@@ -201,7 +226,7 @@ const actions = module.exports = {
 		let story = byId(store, id);
 
 		if (props.startPassage) {
-			story.channel.pushmsg("set_story", ["starting_passage", props.startPassage])
+			story.channel.pushmsg(store.state.userName, "set_story", ["starting_passage", props.startPassage])
 		}
 		if (props.name) {
 			let renameUrl = api.rename(story.name);

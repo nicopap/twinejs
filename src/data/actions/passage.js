@@ -15,7 +15,7 @@ const actions = module.exports = {
 		if (!story.readOnly) {
 			let { name, top, left } = props;
 
-			story.channel.pushmsg("add", [ name, [ left, top ]]);
+			story.channel.pushmsg(state.userName, "add", [ name, [ left, top ]]);
 			dispatch('CREATE_PASSAGE_IN_STORY', storyId, props);
 		}
 	},
@@ -33,8 +33,8 @@ const actions = module.exports = {
 			}
 			if (props.width) {sendMsg(["size", [props.width, props.height]]);}
 			if (props.name) {sendMsg(["name", props.name]);}
-			if (props.added) {sendMsg(["add", props.ch, props.added]);}
 			if (props.deleted) {sendMsg(["del", props.ch, props.deleted]);}
+			if (props.added) {sendMsg(["add", props.ch, props.added]);}
 			if (props.tags) {
 				let passageTags = pById(story, passageId).tags;
 
@@ -60,7 +60,7 @@ const actions = module.exports = {
 		if (!story.readOnly) {
 			let passageName = pById(story, passageId).name;
 
-			story.channel.pushmsg("delete", [ passageName ]);
+			story.channel.pushmsg(state.userName, "delete", [ passageName ]);
 			dispatch('DELETE_PASSAGE_IN_STORY', storyId, passageId);
 		}
 	},
@@ -73,7 +73,11 @@ const actions = module.exports = {
 				let selected = filter(p);
 				let message = selected ? "select" : "deselect";
 
-				story.channel.pushmsg(message, [ p.name, state.pref.userName ]);
+				story.channel.pushmsg(
+					state.userName,
+					"set",
+					[ p.name, [ message, state.pref.userName ] ]
+				);
 				dispatch('UPDATE_PASSAGE_IN_STORY', storyId, p.id, { selected });
 			});
 		}

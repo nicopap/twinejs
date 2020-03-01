@@ -64,8 +64,10 @@ const storyStore = (module.exports = {
 			channel.join()
 				.receive("ok", _ => { console.log("Sent a message"); })
 				.receive("error", r => { console.log("Failed to send message:", r); });
-			channel.pushmsg = (author, msg, body) =>
+			channel.pushmsg = (author, msg, body) => {
 				channel.push(msg, {body, author});
+			};
+
 			story.channel = channel;
 		},
 
